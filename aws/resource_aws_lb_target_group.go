@@ -755,16 +755,14 @@ func resourceAwsLbTargetGroupCustomizeDiff(diff *schema.ResourceDiff, v interfac
 
 	if protocol == elbv2.ProtocolEnumTcp {
 		if diff.HasChange("health_check.0.interval") {
-			old, new := diff.GetChange("health_check.0.interval")
-			return fmt.Errorf("Health check interval cannot be updated from %d to %d for TCP based Target Group %s,"+
-				" use 'terraform taint' to recreate the resource if you wish",
-				old, new, diff.Id())
+			if err := diff.ForceNew("health_check.0.interval"); err != nil {
+				return err
+			}
 		}
 		if diff.HasChange("health_check.0.timeout") {
-			old, new := diff.GetChange("health_check.0.timeout")
-			return fmt.Errorf("Health check timeout cannot be updated from %d to %d for TCP based Target Group %s,"+
-				" use 'terraform taint' to recreate the resource if you wish",
-				old, new, diff.Id())
+			if err := diff.ForceNew("health_check.0.timeout"); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
