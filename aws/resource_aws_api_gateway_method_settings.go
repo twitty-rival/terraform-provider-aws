@@ -3,11 +3,13 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
 func resourceAwsApiGatewayMethodSettings() *schema.Resource {
@@ -16,6 +18,22 @@ func resourceAwsApiGatewayMethodSettings() *schema.Resource {
 		Read:   resourceAwsApiGatewayMethodSettingsRead,
 		Update: resourceAwsApiGatewayMethodSettingsUpdate,
 		Delete: resourceAwsApiGatewayMethodSettingsDelete,
+		Importer: &schema.ResourceImporter{
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				idParts := strings.Split(d.Id(), "/")
+				if len(idParts) != 3 || idParts[0] == "" || idParts[1] == "" || idParts[2] == "" {
+					return nil, fmt.Errorf("Unexpected format of ID (%q), expected REST-API-ID/STAGE-NAME/METHOD-PATH", d.Id())
+				}
+				restApiID := idParts[0]
+				stageName := idParts[1]
+				methodPath := idParts[2]
+				d.Set("method_path", methodPath)
+				d.Set("stage_name", stageName)
+				d.Set("rest_api_id", restApiID)
+				d.SetId(fmt.Sprintf("%s-%s-%s", restApiID, stageName, methodPath))
+				return []*schema.ResourceData{d}, nil
+			},
+		},
 
 		Schema: map[string]*schema.Schema{
 			"rest_api_id": {
@@ -78,6 +96,11 @@ func resourceAwsApiGatewayMethodSettings() *schema.Resource {
 						"unauthorized_cache_control_header_strategy": {
 							Type:     schema.TypeString,
 							Optional: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								apigateway.UnauthorizedCacheControlHeaderStrategyFailWith403,
+								apigateway.UnauthorizedCacheControlHeaderStrategySucceedWithoutResponseHeader,
+								apigateway.UnauthorizedCacheControlHeaderStrategySucceedWithResponseHeader,
+							}, false),
 						},
 					},
 				},
@@ -96,7 +119,7 @@ func resourceAwsApiGatewayMethodSettingsRead(d *schema.ResourceData, meta interf
 	}
 	stage, err := conn.GetStage(&input)
 	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NotFoundException" {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == apigateway.ErrCodeNotFoundException {
 			log.Printf("[WARN] API Gateway Stage (%s) not found, removing method settings", d.Id())
 			d.SetId("")
 			return nil
@@ -136,21 +159,21 @@ func resourceAwsApiGatewayMethodSettingsUpdate(d *schema.ResourceData, meta inte
 	ops := make([]*apigateway.PatchOperation, 0)
 	if d.HasChange("settings.0.metrics_enabled") {
 		ops = append(ops, &apigateway.PatchOperation{
-			Op:    aws.String("replace"),
+			Op:    aws.String(apigateway.OpReplace),
 			Path:  aws.String(prefix + "metrics/enabled"),
 			Value: aws.String(fmt.Sprintf("%t", d.Get("settings.0.metrics_enabled").(bool))),
 		})
 	}
 	if d.HasChange("settings.0.logging_level") {
 		ops = append(ops, &apigateway.PatchOperation{
-			Op:    aws.String("replace"),
+			Op:    aws.String(apigateway.OpReplace),
 			Path:  aws.String(prefix + "logging/loglevel"),
 			Value: aws.String(d.Get("settings.0.logging_level").(string)),
 		})
 	}
 	if d.HasChange("settings.0.data_trace_enabled") {
 		ops = append(ops, &apigateway.PatchOperation{
-			Op:    aws.String("replace"),
+			Op:    aws.String(apigateway.OpReplace),
 			Path:  aws.String(prefix + "logging/dataTrace"),
 			Value: aws.String(fmt.Sprintf("%t", d.Get("settings.0.data_trace_enabled").(bool))),
 		})
@@ -158,49 +181,49 @@ func resourceAwsApiGatewayMethodSettingsUpdate(d *schema.ResourceData, meta inte
 
 	if d.HasChange("settings.0.throttling_burst_limit") {
 		ops = append(ops, &apigateway.PatchOperation{
-			Op:    aws.String("replace"),
+			Op:    aws.String(apigateway.OpReplace),
 			Path:  aws.String(prefix + "throttling/burstLimit"),
 			Value: aws.String(fmt.Sprintf("%d", d.Get("settings.0.throttling_burst_limit").(int))),
 		})
 	}
 	if d.HasChange("settings.0.throttling_rate_limit") {
 		ops = append(ops, &apigateway.PatchOperation{
-			Op:    aws.String("replace"),
+			Op:    aws.String(apigateway.OpReplace),
 			Path:  aws.String(prefix + "throttling/rateLimit"),
 			Value: aws.String(fmt.Sprintf("%f", d.Get("settings.0.throttling_rate_limit").(float64))),
 		})
 	}
 	if d.HasChange("settings.0.caching_enabled") {
 		ops = append(ops, &apigateway.PatchOperation{
-			Op:    aws.String("replace"),
+			Op:    aws.String(apigateway.OpReplace),
 			Path:  aws.String(prefix + "caching/enabled"),
 			Value: aws.String(fmt.Sprintf("%t", d.Get("settings.0.caching_enabled").(bool))),
 		})
 	}
 	if d.HasChange("settings.0.cache_ttl_in_seconds") {
 		ops = append(ops, &apigateway.PatchOperation{
-			Op:    aws.String("replace"),
+			Op:    aws.String(apigateway.OpReplace),
 			Path:  aws.String(prefix + "caching/ttlInSeconds"),
 			Value: aws.String(fmt.Sprintf("%d", d.Get("settings.0.cache_ttl_in_seconds").(int))),
 		})
 	}
 	if d.HasChange("settings.0.cache_data_encrypted") {
 		ops = append(ops, &apigateway.PatchOperation{
-			Op:    aws.String("replace"),
+			Op:    aws.String(apigateway.OpReplace),
 			Path:  aws.String(prefix + "caching/dataEncrypted"),
 			Value: aws.String(fmt.Sprintf("%t", d.Get("settings.0.cache_data_encrypted").(bool))),
 		})
 	}
 	if d.HasChange("settings.0.require_authorization_for_cache_control") {
 		ops = append(ops, &apigateway.PatchOperation{
-			Op:    aws.String("replace"),
+			Op:    aws.String(apigateway.OpReplace),
 			Path:  aws.String(prefix + "caching/requireAuthorizationForCacheControl"),
 			Value: aws.String(fmt.Sprintf("%t", d.Get("settings.0.require_authorization_for_cache_control").(bool))),
 		})
 	}
 	if d.HasChange("settings.0.unauthorized_cache_control_header_strategy") {
 		ops = append(ops, &apigateway.PatchOperation{
-			Op:    aws.String("replace"),
+			Op:    aws.String(apigateway.OpReplace),
 			Path:  aws.String(prefix + "caching/unauthorizedCacheControlHeaderStrategy"),
 			Value: aws.String(d.Get("settings.0.unauthorized_cache_control_header_strategy").(string)),
 		})
@@ -233,7 +256,7 @@ func resourceAwsApiGatewayMethodSettingsDelete(d *schema.ResourceData, meta inte
 		StageName: aws.String(d.Get("stage_name").(string)),
 		PatchOperations: []*apigateway.PatchOperation{
 			{
-				Op:   aws.String("remove"),
+				Op:   aws.String(apigateway.OpRemove),
 				Path: aws.String(fmt.Sprintf("/%s", d.Get("method_path").(string))),
 			},
 		},

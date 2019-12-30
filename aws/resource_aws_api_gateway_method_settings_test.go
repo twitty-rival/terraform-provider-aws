@@ -30,6 +30,12 @@ func TestAccAWSAPIGatewayMethodSettings_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "settings.0.logging_level", "INFO"),
 				),
 			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateIdFunc: testAccCheckAWSAPIGatewayMethodSettingsImportStateIdFunc(resourceName),
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
@@ -374,6 +380,28 @@ func TestAccAWSAPIGatewayMethodSettings_Settings_UnauthorizedCacheControlHeaderS
 	})
 }
 
+func TestAccAWSAPIGatewayMethodSettings_disappears(t *testing.T) {
+	var stage apigateway.Stage
+	rName := acctest.RandomWithPrefix("tf-acc-test")
+	resourceName := "aws_api_gateway_method_settings.test"
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSAPIGatewayMethodSettingsDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSAPIGatewayMethodSettingsConfigSettingsLoggingLevel(rName, "INFO"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAPIGatewayMethodSettingsExists(resourceName, &stage),
+					testAccCheckAWSAPIGatewayMethodSettingsDisappears(resourceName),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func testAccCheckAWSAPIGatewayMethodSettings_metricsEnabled(conf *apigateway.Stage, path string, expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		settings, ok := conf.MethodSettings[path]
@@ -435,6 +463,34 @@ func testAccCheckAWSAPIGatewayMethodSettingsExists(n string, res *apigateway.Sta
 	}
 }
 
+func testAccCheckAWSAPIGatewayMethodSettingsDisappears(resourceName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("Not found: %s", resourceName)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No resource ID is set")
+		}
+		conn := testAccProvider.Meta().(*AWSClient).apigateway
+
+		input := &apigateway.UpdateStageInput{
+			RestApiId: aws.String(rs.Primary.Attributes["rest_api_id"]),
+			StageName: aws.String(rs.Primary.Attributes["stage_name"]),
+			PatchOperations: []*apigateway.PatchOperation{
+				{
+					Op:   aws.String(apigateway.OpRemove),
+					Path: aws.String(fmt.Sprintf("/%s", rs.Primary.Attributes["method_path"])),
+				},
+			},
+		}
+		_, err := conn.UpdateStage(input)
+
+		return err
+	}
+}
+
 func testAccCheckAWSAPIGatewayMethodSettingsDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).apigateway
 
@@ -462,6 +518,17 @@ func testAccCheckAWSAPIGatewayMethodSettingsDestroy(s *terraform.State) error {
 	}
 
 	return nil
+}
+
+func testAccCheckAWSAPIGatewayMethodSettingsImportStateIdFunc(resourceName string) resource.ImportStateIdFunc {
+	return func(s *terraform.State) (string, error) {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return "", fmt.Errorf("Not found: %s", resourceName)
+		}
+
+		return fmt.Sprintf("%s/%s/%s", rs.Primary.Attributes["rest_api_id"], rs.Primary.Attributes["stage_name"], rs.Primary.Attributes["method_path"]), nil
+	}
 }
 
 func testAccAWSAPIGatewayMethodSettingsConfigBase(rName string) string {
