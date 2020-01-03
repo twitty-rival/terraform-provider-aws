@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -50,9 +51,10 @@ func resourceAwsStorageGatewayTapeWithBarcode() *schema.Resource {
 				ValidateFunc: validateArn,
 			},
 			"tape_barcode": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringMatch(regexp.MustCompile("^[A-Z0-9]{7,16}$"), "see https://docs.aws.amazon.com/storagegateway/latest/APIReference/API_CreateTapeWithBarcode.html#StorageGateway-CreateTapeWithBarcode-request-TapeBarcode"),
 			},
 			"tape_size_in_bytes": {
 				Type:     schema.TypeInt,
@@ -86,11 +88,11 @@ func resourceAwsStorageGatewayTapeWithBarcodeCreate(d *schema.ResourceData, meta
 	conn := meta.(*AWSClient).storagegatewayconn
 
 	input := &storagegateway.CreateTapeWithBarcodeInput{
-		GatewayARN:      aws.String(d.Get("gateway_arn").(string)),
-		KMSEncrypted:    aws.Bool(d.Get("kms_encrypted").(bool)),
+		GatewayARN: aws.String(d.Get("gateway_arn").(string)),
+		//KMSEncrypted:    aws.Bool(d.Get("kms_encrypted").(bool)),
 		TapeBarcode:     aws.String(d.Get("tape_barcode").(string)),
 		TapeSizeInBytes: aws.Int64(int64(d.Get("tape_size_in_bytes").(int))),
-		Tags:            keyvaluetags.New(d.Get("tags").(map[string]interface{})).IgnoreAws().StoragegatewayTags(),
+		//Tags:            keyvaluetags.New(d.Get("tags").(map[string]interface{})).IgnoreAws().StoragegatewayTags(),
 	}
 
 	if v, ok := d.GetOk("pool_id"); ok && v.(string) != "" {
