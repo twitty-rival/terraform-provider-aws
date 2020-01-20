@@ -2,7 +2,6 @@ package aws
 
 import (
 	"fmt"
-	"log"
 	"regexp"
 	"testing"
 
@@ -28,6 +27,7 @@ func TestAccAWSCloudTrail(t *testing.T) {
 			"eventSelector":              testAccAWSCloudTrail_event_selector,
 			"eventSelectorWExclude":      testAccAWSCloudTrail_event_selector_exclude,
 			"disappears":                 testAccAWSCloudTrail_disappears,
+			"sns":                        testAccAWSCloudTrail_sns,
 		},
 	}
 
@@ -77,6 +77,46 @@ func testAccAWSCloudTrail_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "include_global_service_events", "false"),
 					testAccCheckCloudTrailLogValidationEnabled(resourceName, false, &trail),
 					testAccCheckCloudTrailKmsKeyIdEquals(resourceName, "", &trail),
+				),
+			},
+		},
+	})
+}
+
+func testAccAWSCloudTrail_sns(t *testing.T) {
+	var trail cloudtrail.Trail
+	rName := acctest.RandomWithPrefix("tf-cloudtrail-test-sns")
+	resourceName := "aws_cloudtrail.test"
+	topicResourceName := "aws_sns_topic.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCloudTrailDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSCloudTrailConfig(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudTrailExists(resourceName, &trail),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				Config: testAccAWSCloudTrailConfigSNS(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudTrailExists(resourceName, &trail),
+					resource.TestCheckResourceAttrPair(resourceName, "sns_topic_name", topicResourceName, "name"),
+					resource.TestCheckResourceAttrPair(resourceName, "sns_topic_arn", topicResourceName, "arn"),
+				),
+			},
+			{
+				Config: testAccAWSCloudTrailConfig(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudTrailExists(resourceName, &trail),
 				),
 			},
 		},
@@ -653,25 +693,6 @@ func testAccCheckAWSCloudTrailDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckCloudTrailLoadTags(trail *cloudtrail.Trail, tags *[]*cloudtrail.Tag) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		conn := testAccProvider.Meta().(*AWSClient).cloudtrailconn
-		input := cloudtrail.ListTagsInput{
-			ResourceIdList: []*string{trail.TrailARN},
-		}
-		out, err := conn.ListTags(&input)
-		if err != nil {
-			return err
-		}
-		log.Printf("[DEBUG] Received CloudTrail tags during test: %s", out)
-		if len(out.ResourceTagList) > 0 {
-			*tags = out.ResourceTagList[0].TagsList
-		}
-		log.Printf("[DEBUG] Loading CloudTrail tags into a var: %s", *tags)
-		return nil
-	}
-}
-
 func testAccAWSCloudTrailConfigS3Base(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_s3_bucket" "test" {
@@ -737,7 +758,29 @@ resource "aws_cloudtrail" "test" {
   sns_topic_name = "${aws_sns_topic.test.name}"
 }
 
-resource "aws_sns_topic" "test" {}
+resource "aws_sns_topic" "test" {
+  name   = %[1]q
+}
+
+resource "aws_sns_topic_policy" "test" {
+  arn = "${aws_sns_topic.test.arn}"
+  policy = <<POLICY
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AWSCloudTrailSNSPolicy20131101",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "cloudtrail.amazonaws.com"
+            },
+            "Action": "SNS:Publish",
+            "Resource": "${aws_sns_topic.test.arn}"
+        }
+    ]
+}
+POLICY
+}
 `, rName)
 }
 
