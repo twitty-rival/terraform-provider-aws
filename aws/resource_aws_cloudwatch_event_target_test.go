@@ -3,7 +3,6 @@ package aws
 import (
 	"fmt"
 	"log"
-	"regexp"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -91,9 +90,10 @@ func testSweepCloudWatchEventTargets(region string) error {
 func TestAccAWSCloudWatchEventTarget_basic(t *testing.T) {
 	var target events.Target
 	resourceName := "aws_cloudwatch_event_target.test"
+	topicResourceName := "aws_sns_topic.test"
 	ruleName := acctest.RandomWithPrefix("tf-acc-cw-event-rule-basic")
-	snsTopicName1 := acctest.RandomWithPrefix("tf-acc")
-	snsTopicName2 := acctest.RandomWithPrefix("tf-acc")
+	snsTopicName1 := acctest.RandomWithPrefix("tf-acc-topic")
+	snsTopicName2 := acctest.RandomWithPrefix("tf-acc-topic-second")
 	targetID1 := acctest.RandomWithPrefix("tf-acc-cw-target")
 	targetID2 := acctest.RandomWithPrefix("tf-acc-cw-target")
 
@@ -108,8 +108,7 @@ func TestAccAWSCloudWatchEventTarget_basic(t *testing.T) {
 					testAccCheckCloudWatchEventTargetExists(resourceName, &target),
 					resource.TestCheckResourceAttr(resourceName, "rule", ruleName),
 					resource.TestCheckResourceAttr(resourceName, "target_id", targetID1),
-					resource.TestMatchResourceAttr(resourceName, "arn",
-						regexp.MustCompile(fmt.Sprintf(":%s$", snsTopicName1))),
+					resource.TestCheckResourceAttrPair(resourceName, "arn", topicResourceName, "arn"),
 				),
 			},
 			{
@@ -118,8 +117,7 @@ func TestAccAWSCloudWatchEventTarget_basic(t *testing.T) {
 					testAccCheckCloudWatchEventTargetExists(resourceName, &target),
 					resource.TestCheckResourceAttr(resourceName, "rule", ruleName),
 					resource.TestCheckResourceAttr(resourceName, "target_id", targetID2),
-					resource.TestMatchResourceAttr(resourceName, "arn",
-						regexp.MustCompile(fmt.Sprintf(":%s$", snsTopicName2))),
+					resource.TestCheckResourceAttrPair(resourceName, "arn", topicResourceName, "arn"),
 				),
 			},
 			{
@@ -135,6 +133,7 @@ func TestAccAWSCloudWatchEventTarget_basic(t *testing.T) {
 func TestAccAWSCloudWatchEventTarget_missingTargetId(t *testing.T) {
 	var target events.Target
 	resourceName := "aws_cloudwatch_event_target.test"
+	topicResourceName := "aws_sns_topic.test"
 	ruleName := acctest.RandomWithPrefix("tf-acc-cw-event-rule-missing-target-id")
 	snsTopicName := acctest.RandomWithPrefix("tf-acc")
 
@@ -148,8 +147,7 @@ func TestAccAWSCloudWatchEventTarget_missingTargetId(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchEventTargetExists(resourceName, &target),
 					resource.TestCheckResourceAttr(resourceName, "rule", ruleName),
-					resource.TestMatchResourceAttr(resourceName, "arn",
-						regexp.MustCompile(fmt.Sprintf(":%s$", snsTopicName))),
+					resource.TestCheckResourceAttrPair(resourceName, "arn", topicResourceName, "arn"),
 				),
 			},
 			{
@@ -165,6 +163,7 @@ func TestAccAWSCloudWatchEventTarget_missingTargetId(t *testing.T) {
 func TestAccAWSCloudWatchEventTarget_full(t *testing.T) {
 	var target events.Target
 	resourceName := "aws_cloudwatch_event_target.test"
+	streamResourceName := "aws_kinesis_stream.test"
 	ruleName := acctest.RandomWithPrefix("tf-acc-cw-event-rule-full")
 	ssmDocumentName := acctest.RandomWithPrefix("tf_ssm_Document")
 	targetID := acctest.RandomWithPrefix("tf-acc-cw-target-full")
@@ -180,8 +179,7 @@ func TestAccAWSCloudWatchEventTarget_full(t *testing.T) {
 					testAccCheckCloudWatchEventTargetExists(resourceName, &target),
 					resource.TestCheckResourceAttr(resourceName, "rule", ruleName),
 					resource.TestCheckResourceAttr(resourceName, "target_id", targetID),
-					resource.TestMatchResourceAttr(resourceName, "arn",
-						regexp.MustCompile("^arn:aws:kinesis:.*:stream/tf_ssm_Document")),
+					resource.TestCheckResourceAttrPair(resourceName, "arn", streamResourceName, "arn"),
 					resource.TestCheckResourceAttr(resourceName, "input", "{ \"source\": [\"aws.cloudtrail\"] }\n"),
 					resource.TestCheckResourceAttr(resourceName, "input_path", ""),
 				),
