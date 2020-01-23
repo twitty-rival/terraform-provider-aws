@@ -63,6 +63,14 @@ func resourceAwsMskCluster() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								"kafka.m5.large",
+								"kafka.m5.xlarge",
+								"kafka.m5.2xlarge",
+								"kafka.m5.4xlarge",
+								"kafka.m5.12xlarge",
+								"kafka.m5.24xlarge",
+							}, false),
 						},
 						"security_groups": {
 							Type:     schema.TypeList,
