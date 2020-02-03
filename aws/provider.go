@@ -377,6 +377,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_backup_vault":                                        resourceAwsBackupVault(),
 			"aws_budgets_budget":                                      resourceAwsBudgetsBudget(),
 			"aws_cloud9_environment_ec2":                              resourceAwsCloud9EnvironmentEc2(),
+			"aws_cloud9_environment_membership":                       resourceAwsCloud9EnvironmentMembership(),
 			"aws_cloudformation_stack":                                resourceAwsCloudFormationStack(),
 			"aws_cloudformation_stack_set":                            resourceAwsCloudFormationStackSet(),
 			"aws_cloudformation_stack_set_instance":                   resourceAwsCloudFormationStackSetInstance(),
