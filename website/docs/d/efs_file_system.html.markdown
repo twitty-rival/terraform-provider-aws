@@ -43,3 +43,4 @@ In addition to all arguments above, the following attributes are exported:
 * `provisioned_throughput_in_mibps` - The throughput, measured in MiB/s, that you want to provision for the file system.
 * `tags` -A mapping of tags to assign to the file system.
 * `throughput_mode` - Throughput mode for the file system.
+* `policy` - The JSON formatted file system policy for the EFS file system.
