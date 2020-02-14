@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/hashcode"
@@ -221,6 +222,10 @@ func resourceAwsAmi() *schema.Resource {
 					"hvm",
 				}, false),
 			},
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -385,6 +390,15 @@ func resourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("virtualization_type", image.VirtualizationType)
 	d.Set("ena_support", image.EnaSupport)
 
+	imageArn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Region:    meta.(*AWSClient).region,
+		Resource:  fmt.Sprintf("image/%s", d.Id()),
+		Service:   "ec2",
+	}.String()
+
+	d.Set("arn", imageArn)
+
 	var ebsBlockDevs []map[string]interface{}
 	var ephemeralBlockDevs []map[string]interface{}
 
@@ -427,8 +441,6 @@ func resourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsAmiUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*AWSClient).ec2conn
 
-	d.Partial(true)
-
 	if d.HasChange("tags") {
 		o, n := d.GetChange("tags")
 
@@ -447,10 +459,7 @@ func resourceAwsAmiUpdate(d *schema.ResourceData, meta interface{}) error {
 		if err != nil {
 			return err
 		}
-		d.SetPartial("description")
 	}
-
-	d.Partial(false)
 
 	return resourceAwsAmiRead(d, meta)
 }
