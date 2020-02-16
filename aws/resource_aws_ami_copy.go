@@ -183,6 +183,10 @@ func resourceAwsAmiCopy() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 
 		// The remaining operations are shared with the generic aws_ami resource,
