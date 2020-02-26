@@ -240,6 +240,12 @@ func resourceAwsLbTargetGroup() *schema.Resource {
 			},
 
 			"tags": tagsSchema(),
+
+			"force_destroy": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 		},
 	}
 }
@@ -495,11 +501,95 @@ func resourceAwsLbTargetGroupUpdate(d *schema.ResourceData, meta interface{}) er
 func resourceAwsLbTargetGroupDelete(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
+	if d.Get("force_destroy").(bool) {
+		err := deleteAwsLbTargetGroupRules(elbconn, d.Id())
+
+		if err != nil {
+			return fmt.Errorf("Error deleting Target Group (force_destroy): %s", err)
+		}
+	}
+
 	_, err := elbconn.DeleteTargetGroup(&elbv2.DeleteTargetGroupInput{
 		TargetGroupArn: aws.String(d.Id()),
 	})
 	if err != nil {
 		return fmt.Errorf("Error deleting Target Group: %s", err)
+	}
+
+	return nil
+}
+
+func deleteAwsLbTargetGroupRules(elbconn *elbv2.ELBV2, targetGroupArn string) error {
+	resp, err := elbconn.DescribeTargetGroups(&elbv2.DescribeTargetGroupsInput{
+		TargetGroupArns: []*string{aws.String(targetGroupArn)},
+	})
+
+	if err != nil {
+		return err
+	}
+
+	if len(resp.TargetGroups) != 1 {
+		return fmt.Errorf("Error retrieving Target Group %q", targetGroupArn)
+	}
+
+	for _, loadBalancerArn := range resp.TargetGroups[0].LoadBalancerArns {
+		listenersResp, err := elbconn.DescribeListeners(&elbv2.DescribeListenersInput{
+			LoadBalancerArn: aws.String(*loadBalancerArn),
+		})
+
+		if err != nil {
+			return err
+		}
+
+		for _, listener := range listenersResp.Listeners {
+			rulesResp, err := elbconn.DescribeRules(&elbv2.DescribeRulesInput{
+				ListenerArn: aws.String(*listener.ListenerArn),
+				PageSize:    aws.Int64(100),
+			})
+
+			if err != nil {
+				return err
+			}
+
+			for _, rule := range rulesResp.Rules {
+				found := false
+				for _, action := range rule.Actions {
+					if *action.TargetGroupArn == targetGroupArn {
+						found = true
+						break
+					}
+				}
+
+				if found {
+					_, err = elbconn.DeleteRule(&elbv2.DeleteRuleInput{
+						RuleArn: aws.String(*rule.RuleArn),
+					})
+
+					if err != nil {
+						return err
+					}
+				}
+			}
+
+			// TODO does this work if there are still rules?
+			for _, action := range listener.DefaultActions {
+				found := false
+				if *action.TargetGroupArn == targetGroupArn {
+					found = true
+					break
+				}
+
+				if found {
+					_, err = elbconn.DeleteListener(&elbv2.DeleteListenerInput{
+						ListenerArn: aws.String(*listener.ListenerArn),
+					})
+
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
 	}
 
 	return nil
