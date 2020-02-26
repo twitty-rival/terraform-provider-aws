@@ -555,6 +555,11 @@ func deleteAwsLbTargetGroupRules(elbconn *elbv2.ELBV2, targetGroupArn string) er
 				found := false
 				for _, action := range rule.Actions {
 					if action.TargetGroupArn != nil && *action.TargetGroupArn == targetGroupArn {
+						if rule.IsDefault != nil && *rule.IsDefault {
+							return fmt.Errorf("Can't force destroy target group %s because the default rule for LB Listener %s points at it",
+								targetGroupArn, *listener.ListenerArn)
+						}
+
 						found = true
 						break
 					}
@@ -571,7 +576,7 @@ func deleteAwsLbTargetGroupRules(elbconn *elbv2.ELBV2, targetGroupArn string) er
 				}
 			}
 
-			// TODO does this work if there are still rules?
+			// TODO does this work if there are still rules attached to the listener?
 			for _, action := range listener.DefaultActions {
 				found := false
 				if action.TargetGroupArn != nil && *action.TargetGroupArn == targetGroupArn {
