@@ -554,7 +554,7 @@ func deleteAwsLbTargetGroupRules(elbconn *elbv2.ELBV2, targetGroupArn string) er
 			for _, rule := range rulesResp.Rules {
 				found := false
 				for _, action := range rule.Actions {
-					if *action.TargetGroupArn == targetGroupArn {
+					if action.TargetGroupArn != nil && *action.TargetGroupArn == targetGroupArn {
 						found = true
 						break
 					}
@@ -574,7 +574,7 @@ func deleteAwsLbTargetGroupRules(elbconn *elbv2.ELBV2, targetGroupArn string) er
 			// TODO does this work if there are still rules?
 			for _, action := range listener.DefaultActions {
 				found := false
-				if *action.TargetGroupArn == targetGroupArn {
+				if action.TargetGroupArn != nil && *action.TargetGroupArn == targetGroupArn {
 					found = true
 					break
 				}
