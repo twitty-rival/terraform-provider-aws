@@ -244,7 +244,7 @@ func resourceAwsLbTargetGroup() *schema.Resource {
 			"force_destroy": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  true, // TODO: should default to false if this gets submitted as a PR
+				Default:  false,
 			},
 		},
 	}
@@ -501,7 +501,7 @@ func resourceAwsLbTargetGroupUpdate(d *schema.ResourceData, meta interface{}) er
 func resourceAwsLbTargetGroupDelete(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
-	if d.Get("force_destroy").(bool) {
+	if d.Get("force_destroy").(bool) || true { // TODO remove `|| true` if this gets submitted as a PR
 		err := deleteAwsLbTargetGroupRules(elbconn, d.Id())
 
 		if err != nil {
