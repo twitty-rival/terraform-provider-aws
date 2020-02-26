@@ -244,7 +244,7 @@ func resourceAwsLbTargetGroup() *schema.Resource {
 			"force_destroy": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  false,
+				Default:  true, // TODO: should default to false if this gets submitted as a PR
 			},
 		},
 	}
