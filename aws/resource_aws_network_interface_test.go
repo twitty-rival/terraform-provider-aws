@@ -250,7 +250,7 @@ func TestAccAWSENI_ignoreExternalAttachment(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSENIExists(resourceName, &conf),
 					testAccCheckAWSENIAttributes(&conf),
-					testAccCheckAWSENIMakeExternalAttachment("aws_instance.foo", &conf),
+					testAccCheckAWSENIMakeExternalAttachment("aws_instance.test", &conf),
 				),
 			},
 			{
@@ -766,7 +766,7 @@ resource "aws_vpc" "test" {
     }
 }
 
-resource "aws_subnet" "test" {
+resource "aws_subnet" "test1" {
     vpc_id = "${aws_vpc.test.id}"
     cidr_block = "172.16.10.0/24"
     availability_zone = "us-west-2a"
@@ -775,7 +775,7 @@ resource "aws_subnet" "test" {
         }
 }
 
-resource "aws_subnet" "test" {
+resource "aws_subnet" "test2" {
     vpc_id = "${aws_vpc.test.id}"
     cidr_block = "172.16.11.0/24"
     availability_zone = "us-west-2a"
@@ -793,7 +793,7 @@ resource "aws_security_group" "test" {
 resource "aws_instance" "test" {
     ami = "ami-c5eabbf5"
     instance_type = "t2.micro"
-    subnet_id = "${aws_subnet.test.id}"
+    subnet_id = "${aws_subnet.test2.id}"
     associate_public_ip_address = false
     private_ip = "172.16.11.50"
   tags = {
@@ -802,7 +802,7 @@ resource "aws_instance" "test" {
 }
 
 resource "aws_network_interface" "test" {
-    subnet_id = "${aws_subnet.test.id}"
+    subnet_id = "${aws_subnet.test1.id}"
     private_ips = ["172.16.10.100"]
     security_groups = ["${aws_security_group.test.id}"]
     attachment {
@@ -824,7 +824,7 @@ resource "aws_vpc" "test" {
     }
 }
 
-resource "aws_subnet" "test" {
+resource "aws_subnet" "test1" {
     vpc_id = "${aws_vpc.test.id}"
     cidr_block = "172.16.10.0/24"
     availability_zone = "us-west-2a"
@@ -833,7 +833,7 @@ resource "aws_subnet" "test" {
     }
 }
 
-resource "aws_subnet" "test" {
+resource "aws_subnet" "test2" {
     vpc_id = "${aws_vpc.test.id}"
     cidr_block = "172.16.11.0/24"
     availability_zone = "us-west-2a"
@@ -851,7 +851,7 @@ resource "aws_security_group" "test" {
 resource "aws_instance" "test" {
     ami = "ami-c5eabbf5"
     instance_type = "t2.micro"
-    subnet_id = "${aws_subnet.test.id}"
+    subnet_id = "${aws_subnet.test2.id}"
     associate_public_ip_address = false
     private_ip = "172.16.11.50"
   tags = {
@@ -860,7 +860,7 @@ resource "aws_instance" "test" {
 }
 
 resource "aws_network_interface" "test" {
-    subnet_id = "${aws_subnet.test.id}"
+    subnet_id = "${aws_subnet.test1.id}"
     private_ips = ["172.16.10.100"]
     security_groups = ["${aws_security_group.test.id}"]
   tags = {
