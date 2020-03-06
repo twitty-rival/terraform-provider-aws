@@ -170,21 +170,26 @@ func resourceAwsNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 	}
 
 
+	if err := waitForNetworkInterfaceCreation(conn, d.Id(), d.Timeout(schema.TimeoutCreate)); err != nil {
+		return fmt.Errorf("error waiting for Network Interface (%s) creation: %s", d.Id(), err)
+	}
+
 	if v, ok := d.GetOk("tags"); ok {
 		if err := keyvaluetags.Ec2UpdateTags(conn, d.Id(), nil, v.(map[string]interface{})); err != nil {
 			return fmt.Errorf("error updating EC2 Network Interface (%s) tags: %s", d.Id(), err)
 		}
 	}
 
-	if v, ok := d.GetOk("source_dest_check"); ok {
+	//Default value is enabled
+	if !d.Get("source_dest_check").(bool) {
 		request := &ec2.ModifyNetworkInterfaceAttributeInput{
 			NetworkInterfaceId: aws.String(d.Id()),
-			SourceDestCheck:    &ec2.AttributeBooleanValue{Value: aws.Bool(v.(bool))},
+			SourceDestCheck:    &ec2.AttributeBooleanValue{Value: aws.Bool(false)},
 		}
 
 		_, err := conn.ModifyNetworkInterfaceAttribute(request)
 		if err != nil {
-			return fmt.Errorf("Failure updating ENI: %s", err)
+			return fmt.Errorf("Failure updating SourceDestCheck: %s", err)
 		}
 	}
 
@@ -395,7 +400,7 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 		os := o.(*schema.Set)
 		ns := n.(*schema.Set)
 
-		// Unassign old IP addresses
+		// Unassign old IPV6 addresses
 		unassignIps := os.Difference(ns)
 		if unassignIps.Len() != 0 {
 			input := &ec2.UnassignIpv6AddressesInput{
@@ -404,11 +409,11 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 			}
 			_, err := conn.UnassignIpv6Addresses(input)
 			if err != nil {
-				return fmt.Errorf("Failure to unassign IPV6 Addresses: %s", err)
+				return fmt.Errorf("failure to unassign IPV6 Addresses: %s", err)
 			}
 		}
 
-		// Assign new IP addresses
+		// Assign new IPV6 addresses
 		assignIps := ns.Difference(os)
 		if assignIps.Len() != 0 {
 			input := &ec2.AssignIpv6AddressesInput{
@@ -422,8 +427,6 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 		}
 	}
 
-	// ModifyNetworkInterfaceAttribute needs to be called after creating an ENI
-	// since CreateNetworkInterface doesn't take SourceDeskCheck parameter.
 	if d.HasChange("source_dest_check") {
 		request := &ec2.ModifyNetworkInterfaceAttributeInput{
 			NetworkInterfaceId: aws.String(d.Id()),
@@ -432,7 +435,7 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 
 		_, err := conn.ModifyNetworkInterfaceAttribute(request)
 		if err != nil {
-			return fmt.Errorf("Failure updating ENI: %s", err)
+			return fmt.Errorf("failure updating Source Dest Check on ENI: %s", err)
 		}
 	}
 
@@ -669,4 +672,18 @@ func networkInterfaceStateRefresh(conn *ec2.EC2, eniId string) resource.StateRef
 			return nil, "", fmt.Errorf("found %d ENIs for %s, expected 1", n, eniId)
 		}
 	}
+}
+
+func waitForNetworkInterfaceCreation(conn *ec2.EC2, id string, timeout time.Duration) error {
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"pending"},
+		Target:  []string{ec2.NetworkInterfaceStatusAvailable},
+		Refresh: networkInterfaceStateRefresh(conn, id),
+		Timeout: timeout,
+		Delay:   30 * time.Second,
+	}
+
+	_, err := stateConf.WaitForState()
+
+	return err
 }
