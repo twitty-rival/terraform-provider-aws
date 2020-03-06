@@ -607,6 +607,10 @@ func testAccCheckAWSENIMakeExternalAttachment(n string, conf *ec2.NetworkInterfa
 }
 
 const testAccAWSENIConfigBase = `
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
 resource "aws_vpc" "test" {
   cidr_block           = "172.16.0.0/16"
   enable_dns_hostnames = true
@@ -619,7 +623,7 @@ resource "aws_vpc" "test" {
 resource "aws_subnet" "test" {
   vpc_id            = "${aws_vpc.test.id}"
   cidr_block        = "172.16.10.0/24"
-  availability_zone = "us-west-2a"
+  availability_zone = "${data.aws_availability_zones.available.names[0]}"
 
   tags = {
     Name = "tf-acc-network-interface"
@@ -653,7 +657,11 @@ resource "aws_network_interface" "test" {
 }
 `
 
-const testAccAWSENIIPV6Config = `
+const testAccAWSENIIPV6ConfigBase = `
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
 resource "aws_vpc" "test" {
   cidr_block                       = "172.16.0.0/16"
   assign_generated_ipv6_cidr_block = true
@@ -665,10 +673,10 @@ resource "aws_vpc" "test" {
 }
 
 resource "aws_subnet" "test" {
-  vpc_id                          = "${aws_vpc.test.id}"
-  cidr_block                      = "172.16.10.0/24"
-  ipv6_cidr_block                 = "${cidrsubnet(aws_vpc.test.ipv6_cidr_block, 8, 16)}"
-  availability_zone               = "us-west-2a"
+  vpc_id            = "${aws_vpc.test.id}"
+  cidr_block        = "172.16.10.0/24"
+  ipv6_cidr_block   = "${cidrsubnet(aws_vpc.test.ipv6_cidr_block, 8, 16)}"
+  availability_zone = "${data.aws_availability_zones.available.names[0]}"
 
   tags = {
     Name = "tf-acc-network-interface-ipv6"
@@ -680,11 +688,20 @@ resource "aws_security_group" "test" {
   description = "test"
   name        = "tf-acc-network-interface-ipv6"
 
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "tcp"
+    cidr_blocks = ["10.0.0.0/16"]
+  }
+
   tags = {
     Name = "tf-acc-network-interface-ipv6"
   }
 }
+`
 
+const testAccAWSENIIPV6Config = testAccAWSENIIPV6ConfigBase + `
 resource "aws_network_interface" "test" {
   subnet_id       = "${aws_subnet.test.id}"
   private_ips     = ["172.16.10.100"]
@@ -699,38 +716,7 @@ resource "aws_network_interface" "test" {
 `
 
 func testAccAWSENIIPV6CountConfig(ipCount int) string {
-	return fmt.Sprintf(`
-resource "aws_vpc" "test" {
-  cidr_block                       = "172.16.0.0/16"
-  assign_generated_ipv6_cidr_block = true
-  enable_dns_hostnames             = true
-
-  tags = {
-  	Name = "tf-acc-network-interface-ipv6"
-  }
-}
-
-resource "aws_subnet" "test" {
-  vpc_id                          = "${aws_vpc.test.id}"
-  cidr_block                      = "172.16.10.0/24"
-  ipv6_cidr_block                 = "${cidrsubnet(aws_vpc.test.ipv6_cidr_block, 8, 16)}"
-  availability_zone               = "us-west-2a"
-
-  tags = {
-    Name = "tf-acc-network-interface-ipv6"
-  }
-}
-
-resource "aws_security_group" "test" {
-  vpc_id      = "${aws_vpc.test.id}"
-  description = "test"
-  name        = "tf-acc-network-interface-ipv6"
-
-  tags = {
-    Name = "tf-acc-network-interface-ipv6"
-  }
-}
-
+	return testAccAWSENIIPV6ConfigBase + fmt.Sprintf(`
 resource "aws_network_interface" "test" {
   subnet_id           = "${aws_subnet.test.id}"
   private_ips         = ["172.16.10.100"]
@@ -776,6 +762,10 @@ resource "aws_network_interface" "test" {
 `
 
 const testAccAWSENIConfigWithAttachment = `
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
 resource "aws_vpc" "test" {
   cidr_block           = "172.16.0.0/16"
   enable_dns_hostnames = true
@@ -787,7 +777,7 @@ resource "aws_vpc" "test" {
 resource "aws_subnet" "test1" {
   vpc_id            = "${aws_vpc.test.id}"
   cidr_block        = "172.16.10.0/24"
-  availability_zone = "us-west-2a"
+  availability_zone = "${data.aws_availability_zones.available.names[0]}"
 
   tags = {
     Name = "tf-acc-network-interface-w-attachment-test"
@@ -797,7 +787,7 @@ resource "aws_subnet" "test1" {
 resource "aws_subnet" "test2" {
   vpc_id            = "${aws_vpc.test.id}"
   cidr_block        = "172.16.11.0/24"
-  availability_zone = "us-west-2a"
+  availability_zone = "${data.aws_availability_zones.available.names[0]}"
   tags = {
     Name = "tf-acc-network-interface-w-attachment-test"
   }
@@ -837,6 +827,10 @@ resource "aws_network_interface" "test" {
 `
 
 const testAccAWSENIConfigExternalAttachment = `
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
 resource "aws_vpc" "test" {
   cidr_block           = "172.16.0.0/16"
   enable_dns_hostnames = true
@@ -849,7 +843,7 @@ resource "aws_vpc" "test" {
 resource "aws_subnet" "test1" {
   vpc_id            = "${aws_vpc.test.id}"
   cidr_block        = "172.16.10.0/24"
-  availability_zone = "us-west-2a"
+  availability_zone = "${data.aws_availability_zones.available.names[0]}"
 
   tags = {
     Name = "tf-acc-network-interface-external-attachment-test"
@@ -859,7 +853,7 @@ resource "aws_subnet" "test1" {
 resource "aws_subnet" "test2" {
   vpc_id            = "${aws_vpc.test.id}"
   cidr_block        = "172.16.11.0/24"
-  availability_zone = "us-west-2a"
+  availability_zone = "${data.aws_availability_zones.available.names[0]}"
 
   tags = {
     Name = "tf-acc-network-interface-external-attachment-test"
