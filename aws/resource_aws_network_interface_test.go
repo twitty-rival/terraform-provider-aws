@@ -635,7 +635,7 @@ resource "aws_vpc" "test" {
   enable_dns_hostnames = true
 
   tags = {
-    Name = "terraform-testacc-network-interface"
+    Name = "tf-acc-network-interface"
   }
 }
 
@@ -660,6 +660,10 @@ resource "aws_security_group" "test" {
     protocol = "tcp"
     cidr_blocks = ["10.0.0.0/16"]
   }
+
+  tags = {
+    Name = "tf-acc-network-interface"
+  }
 }
 `
 
@@ -679,7 +683,7 @@ resource "aws_vpc" "test" {
   enable_dns_hostnames             = true
 
   tags = {
-  	Name = "terraform-testacc-network-interface-ipv6"
+  	Name = "tf-acc-network-interface-ipv6"
   }
 }
 
@@ -700,7 +704,7 @@ resource "aws_security_group" "test" {
   name        = "tf-acc-network-interface-ipv6"
 
   tags = {
-    Name = "test-interface-ipv6"
+    Name = "tf-acc-network-interface-ipv6"
   }
 }
 
@@ -712,7 +716,7 @@ resource "aws_network_interface" "test" {
   description     = "Managed by Terraform"
 
   tags = {
-    Name = "test-interface-ipv6"
+    Name = "tf-acc-network-interface-ipv6"
   }
 }
 `
@@ -725,7 +729,7 @@ resource "aws_vpc" "test" {
   enable_dns_hostnames             = true
 
   tags = {
-  	Name = "terraform-testacc-network-interface-ipv6"
+  	Name = "tf-acc-network-interface-ipv6"
   }
 }
 
@@ -746,7 +750,7 @@ resource "aws_security_group" "test" {
   name        = "tf-acc-network-interface-ipv6"
 
   tags = {
-    Name = "test-interface-ipv6"
+    Name = "tf-acc-network-interface-ipv6"
   }
 }
 
@@ -758,7 +762,7 @@ resource "aws_network_interface" "test" {
   description         = "Managed by Terraform"
 
   tags = {
-    Name = "test-interface-ipv6"
+    Name = "tf-acc-network-interface-ipv6"
   }
 }
 `, ipCount)
@@ -770,34 +774,11 @@ resource "aws_network_interface" "test" {
   private_ips     = ["172.16.10.100"]
   security_groups = ["${aws_security_group.test.id}"]
   description     = "Updated ENI Description"
-
-  tags = {
-    Name = "test_interface"
-  }
 }
 `
 
 func testAccAWSENIConfigWithSourceDestCheck(enabled bool) string {
-	return fmt.Sprintf(`
-resource "aws_vpc" "test" {
-  cidr_block           = "172.16.0.0/16"
-  enable_dns_hostnames = true
-
-  tags = {
-  	Name = "terraform-testacc-network-interface-w-source-dest-check"
-  }
-}
-
-resource "aws_subnet" "test" {
-  vpc_id            = "${aws_vpc.test.id}"
-  cidr_block        = "172.16.10.0/24"
-  availability_zone = "us-west-2a"
-
-  tags = {
-    Name = "tf-acc-network-interface-w-source-dest-check"
-  }
-}
-
+	return testAccAWSENIConfigBase + fmt.Sprintf(`
 resource "aws_network_interface" "test" {
   subnet_id         = "${aws_subnet.test.id}"
   source_dest_check = %[1]t
@@ -810,26 +791,7 @@ resource "aws_network_interface" "test" {
 `, enabled)
 }
 
-const testAccAWSENIConfigWithNoPrivateIPs = `
-resource "aws_vpc" "test" {
-	cidr_block           = "172.16.0.0/16"
-	enable_dns_hostnames = true
-
-	tags = {
-	  Name = "terraform-testacc-network-interface-w-no-private-ips"
-	}
-}
-
-resource "aws_subnet" "test" {
-  vpc_id            = "${aws_vpc.test.id}"
-  cidr_block        = "172.16.10.0/24"
-  availability_zone = "us-west-2a"
-
-  tags = {
-    Name = "tf-acc-network-interface-w-no-private-ips"
-  }
-}
-
+const testAccAWSENIConfigWithNoPrivateIPs = testAccAWSENIConfigBase + `
 resource "aws_network_interface" "test" {
   subnet_id         = "${aws_subnet.test.id}"
   source_dest_check = false
