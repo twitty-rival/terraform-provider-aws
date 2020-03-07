@@ -148,8 +148,7 @@ func TestAccAWSSubnet_basic(t *testing.T) {
 			{
 				Config: testAccSubnetConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckSubnetExists(
-						resourceName, &v),
+					testAccCheckSubnetExists(resourceName, &v),
 					testCheck,
 					// ipv6 should be empty if disabled so we can still use the property in conditionals
 					resource.TestCheckResourceAttr(resourceName, "ipv6_cidr_block", ""),
@@ -231,8 +230,7 @@ func TestAccAWSSubnet_ipv6(t *testing.T) {
 			{
 				Config: testAccSubnetConfigIpv6UpdateIpv6Cidr,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckSubnetExists(
-						resourceName, &after),
+					testAccCheckSubnetExists(resourceName, &after),
 
 					testAccCheckAwsSubnetNotRecreated(t, &before, &after),
 				),
@@ -311,6 +309,27 @@ func TestAccAWSSubnet_availabilityZoneId(t *testing.T) {
 	})
 }
 
+func TestAccAWSSubnet_disappears(t *testing.T) {
+	var v ec2.Subnet
+	resourceName := "aws_subnet.test"
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckSubnetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccSubnetConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckSubnetExists(resourceName, &v),
+					testAccCheckSubnetDisappears(&v),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func TestAccAWSSubnet_outpost(t *testing.T) {
 	var v ec2.Subnet
 	resourceName := "aws_subnet.test"
@@ -332,10 +351,8 @@ func TestAccAWSSubnet_outpost(t *testing.T) {
 			{
 				Config: testAccSubnetConfigOutpost(outpostArn),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckSubnetExists(
-						resourceName, &v),
-					resource.TestCheckResourceAttr(
-						resourceName, "outpost_arn", outpostArn),
+					testAccCheckSubnetExists(resourceName, &v),
+					resource.TestCheckResourceAttr(resourceName, "outpost_arn", outpostArn),
 				),
 			},
 			{
@@ -438,6 +455,17 @@ func testAccCheckSubnetExists(n string, v *ec2.Subnet) resource.TestCheckFunc {
 		*v = *resp.Subnets[0]
 
 		return nil
+	}
+}
+
+func testAccCheckSubnetDisappears(v *ec2.Subnet) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		_, err := conn.DeleteSubnet(&ec2.DeleteSubnetInput{
+			SubnetId: v.SubnetId,
+		})
+
+		return err
 	}
 }
 
