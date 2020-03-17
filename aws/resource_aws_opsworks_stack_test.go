@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/opsworks"
 )
 
@@ -17,7 +18,7 @@ import (
 ///////////////////////////////
 
 func TestAccAWSOpsworksStack_noVpcBasic(t *testing.T) {
-	stackName := acctest.RandomWithPrefix("tf-opsworks-acc")
+	stackName := fmt.Sprintf("tf-opsworks-acc-%d", acctest.RandInt())
 	resourceName := "aws_opsworks_stack.tf-acc"
 	var opsstack opsworks.Stack
 
@@ -44,7 +45,7 @@ func TestAccAWSOpsworksStack_noVpcBasic(t *testing.T) {
 }
 
 func TestAccAWSOpsworksStack_noVpcChangeServiceRoleForceNew(t *testing.T) {
-	stackName := acctest.RandomWithPrefix("tf-opsworks-acc")
+	stackName := fmt.Sprintf("tf-opsworks-acc-%d", acctest.RandInt())
 	resourceName := "aws_opsworks_stack.tf-acc"
 	var before, after opsworks.Stack
 
@@ -76,7 +77,7 @@ func TestAccAWSOpsworksStack_noVpcChangeServiceRoleForceNew(t *testing.T) {
 }
 
 func TestAccAWSOpsworksStack_vpc(t *testing.T) {
-	stackName := acctest.RandomWithPrefix("tf-opsworks-acc")
+	stackName := fmt.Sprintf("tf-opsworks-acc-%d", acctest.RandInt())
 	resourceName := "aws_opsworks_stack.tf-acc"
 	var opsstack opsworks.Stack
 
@@ -111,7 +112,7 @@ func TestAccAWSOpsworksStack_vpc(t *testing.T) {
 }
 
 func TestAccAWSOpsworksStack_noVpcCreateTags(t *testing.T) {
-	stackName := acctest.RandomWithPrefix("tf-opsworks-acc")
+	stackName := fmt.Sprintf("tf-opsworks-acc-%d", acctest.RandInt())
 	resourceName := "aws_opsworks_stack.tf-acc"
 	var opsstack opsworks.Stack
 
@@ -150,10 +151,8 @@ func TestAccAWSOpsworksStack_noVpcCreateTags(t *testing.T) {
 /////////////////////////////
 
 func TestAccAWSOpsworksStack_CustomCookbooks_SetPrivateProperties(t *testing.T) {
-	stackName := acctest.RandomWithPrefix("tf-opsworks-acc")
+	stackName := fmt.Sprintf("tf-opsworks-acc-%d", acctest.RandInt())
 	var opsstack opsworks.Stack
-	resourceName := "aws_opsworks_stack.tf-acc"
-
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -162,10 +161,16 @@ func TestAccAWSOpsworksStack_CustomCookbooks_SetPrivateProperties(t *testing.T) 
 			{
 				Config: testAccAWSOpsworksStackConfig_CustomCookbooks_Set(stackName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSOpsworksStackExists(resourceName, true, &opsstack),
+					testAccCheckAWSOpsworksStackExists("aws_opsworks_stack.tf-acc", true, &opsstack),
 					testAccCheckAWSOpsworksCreateStackAttributesWithCookbooks(&opsstack, "us-west-2a", stackName),
-					resource.TestCheckResourceAttr(resourceName, "custom_cookbooks_source.0.password", "password"),
-					resource.TestCheckResourceAttr(resourceName, "custom_cookbooks_source.0.ssh_key", sshKey),
+					resource.TestCheckResourceAttr(
+						"aws_opsworks_stack.tf-acc",
+						"custom_cookbooks_source.0.password",
+						"password"),
+					resource.TestCheckResourceAttr(
+						"aws_opsworks_stack.tf-acc",
+						"custom_cookbooks_source.0.ssh_key",
+						sshKey),
 				),
 			},
 		},
@@ -176,7 +181,7 @@ func TestAccAWSOpsworksStack_CustomCookbooks_SetPrivateProperties(t *testing.T) 
 // to create Stack's prior to v0.9.0.
 // See https://github.com/hashicorp/terraform/issues/12842
 func TestAccAWSOpsWorksStack_classicEndpoints(t *testing.T) {
-	stackName := acctest.RandomWithPrefix("tf-opsworks-acc")
+	stackName := fmt.Sprintf("tf-opsworks-acc-%d", acctest.RandInt())
 	resourceName := "aws_opsworks_stack.main"
 	rInt := acctest.RandInt()
 	var opsstack opsworks.Stack
@@ -394,35 +399,107 @@ resource "aws_iam_instance_profile" "opsworks_instance" {
 ////////////////////////////
 
 func testAccAwsOpsworksStackCheckResourceAttrsCreate(zone, stackName string) resource.TestCheckFunc {
-	resourceName := "aws_opsworks_stack.tf-acc"
-
 	return resource.ComposeTestCheckFunc(
-		resource.TestCheckResourceAttr(resourceName, "name", stackName),
-		resource.TestCheckResourceAttr(resourceName, "default_availability_zone", zone),
-		resource.TestCheckResourceAttr(resourceName, "default_os", "Amazon Linux 2016.09"),
-		resource.TestCheckResourceAttr(resourceName, "default_root_device_type", "ebs"),
-		resource.TestCheckResourceAttr(resourceName, "custom_json", `{"key": "value"}`),
-		resource.TestCheckResourceAttr(resourceName, "configuration_manager_version", "11.10"),
-		resource.TestCheckResourceAttr(resourceName, "use_opsworks_security_groups", "false"),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"name",
+			stackName,
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"default_availability_zone",
+			zone,
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"default_os",
+			"Amazon Linux 2016.09",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"default_root_device_type",
+			"ebs",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"custom_json",
+			`{"key": "value"}`,
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"configuration_manager_version",
+			"11.10",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"use_opsworks_security_groups",
+			"false",
+		),
 	)
 }
 
 func testAccAwsOpsworksStackCheckResourceAttrsUpdate(zone, stackName string) resource.TestCheckFunc {
-	resourceName := "aws_opsworks_stack.tf-acc"
-
 	return resource.ComposeTestCheckFunc(
-		resource.TestCheckResourceAttr(resourceName, "name", stackName),
-		resource.TestCheckResourceAttr(resourceName, "default_availability_zone", zone),
-		resource.TestCheckResourceAttr(resourceName, "default_os", "Amazon Linux 2015.09"),
-		resource.TestCheckResourceAttr(resourceName, "default_root_device_type", "ebs"),
-		resource.TestCheckResourceAttr(resourceName, "custom_json", `{"key": "value"}`),
-		resource.TestCheckResourceAttr(resourceName, "configuration_manager_version", "11.10"),
-		resource.TestCheckResourceAttr(resourceName, "use_opsworks_security_groups", "false"),
-		resource.TestCheckResourceAttr(resourceName, "use_custom_cookbooks", "true"),
-		resource.TestCheckResourceAttr(resourceName, "manage_berkshelf", "true"),
-		resource.TestCheckResourceAttr(resourceName, "custom_cookbooks_source.0.type", "git"),
-		resource.TestCheckResourceAttr(resourceName, "custom_cookbooks_source.0.revision", "master"),
-		resource.TestCheckResourceAttr(resourceName, "custom_cookbooks_source.0.url", "https://github.com/aws/opsworks-example-cookbooks.git"),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"name",
+			stackName,
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"default_availability_zone",
+			zone,
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"default_os",
+			"Amazon Linux 2015.09",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"default_root_device_type",
+			"ebs",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"custom_json",
+			`{"key": "value"}`,
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"configuration_manager_version",
+			"11.10",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"use_opsworks_security_groups",
+			"false",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"use_custom_cookbooks",
+			"true",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"manage_berkshelf",
+			"true",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"custom_cookbooks_source.0.type",
+			"git",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"custom_cookbooks_source.0.revision",
+			"master",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"custom_cookbooks_source.0.url",
+			"https://github.com/aws/opsworks-example-cookbooks.git",
+		),
 	)
 }
 
@@ -624,8 +701,11 @@ func testAccCheckAwsOpsworksStackDestroy(s *terraform.State) error {
 
 		_, err := opsworksconn.DescribeStacks(req)
 		if err != nil {
-			if isAWSErr(err, opsworks.ErrCodeResourceNotFoundException, "") {
-				return nil
+			if awserr, ok := err.(awserr.Error); ok {
+				if awserr.Code() == "ResourceNotFoundException" {
+					// not found, all good
+					return nil
+				}
 			}
 			return err
 		}
@@ -644,7 +724,7 @@ provider "aws" {
 }
 
 resource "aws_opsworks_stack" "tf-acc" {
-  name                          = %[1]q
+  name                          = "%s"
   region                        = "us-east-1"
   service_role_arn              = "${aws_iam_role.opsworks_service.arn}"
   default_instance_profile_arn  = "${aws_iam_instance_profile.opsworks_instance.arn}"
@@ -657,7 +737,7 @@ resource "aws_opsworks_stack" "tf-acc" {
 }
 
 resource "aws_iam_role" "opsworks_service" {
-  name = "%[1]s_opsworks_service"
+  name = "%s_opsworks_service"
 
   assume_role_policy = <<EOT
 {
@@ -677,7 +757,7 @@ EOT
 }
 
 resource "aws_iam_role_policy" "opsworks_service" {
-  name = "%[1]s_opsworks_service"
+  name = "%s_opsworks_service"
   role = "${aws_iam_role.opsworks_service.id}"
 
   policy = <<EOT
@@ -700,7 +780,7 @@ EOT
 }
 
 resource "aws_iam_role" "opsworks_instance" {
-  name = "%[1]s_opsworks_instance"
+  name = "%s_opsworks_instance"
 
   assume_role_policy = <<EOT
 {
@@ -720,16 +800,16 @@ EOT
 }
 
 resource "aws_iam_instance_profile" "opsworks_instance" {
-  name  = "%[1]s_opsworks_instance"
+  name  = "%s_opsworks_instance"
   role  = "${aws_iam_role.opsworks_instance.name}"
 }
-`, name)
+`, name, name, name, name, name)
 }
 
 func testAccAwsOpsworksStackConfigNoVpcCreateTags(name string) string {
 	return fmt.Sprintf(`
 resource "aws_opsworks_stack" "tf-acc" {
-  name                          = %[1]q
+  name                          = "%s"
   region                        = "us-west-2"
   service_role_arn              = "${aws_iam_role.opsworks_service.arn}"
   default_instance_profile_arn  = "${aws_iam_instance_profile.opsworks_instance.arn}"
@@ -746,7 +826,7 @@ resource "aws_opsworks_stack" "tf-acc" {
 }
 
 resource "aws_iam_role" "opsworks_service" {
-  name = "%[1]s_opsworks_service"
+  name = "%s_opsworks_service"
 
   assume_role_policy = <<EOT
 {
@@ -766,7 +846,7 @@ EOT
 }
 
 resource "aws_iam_role_policy" "opsworks_service" {
-  name = "%[1]s_opsworks_service"
+  name = "%s_opsworks_service"
   role = "${aws_iam_role.opsworks_service.id}"
 
   policy = <<EOT
@@ -789,7 +869,7 @@ EOT
 }
 
 resource "aws_iam_role" "opsworks_instance" {
-  name = "%[1]s_opsworks_instance"
+  name = "%s_opsworks_instance"
 
   assume_role_policy = <<EOT
 {
@@ -809,16 +889,16 @@ EOT
 }
 
 resource "aws_iam_instance_profile" "opsworks_instance" {
-  name  = "%[1]s_opsworks_instance"
+  name  = "%s_opsworks_instance"
   role  = "${aws_iam_role.opsworks_instance.name}"
 }
-`, name)
+`, name, name, name, name, name)
 }
 
 func testAccAwsOpsworksStackConfigNoVpcUpdateTags(name string) string {
 	return fmt.Sprintf(`
 resource "aws_opsworks_stack" "tf-acc" {
-  name                          = %[1]q
+  name                          = "%s"
   region                        = "us-west-2"
   service_role_arn              = "${aws_iam_role.opsworks_service.arn}"
   default_instance_profile_arn  = "${aws_iam_instance_profile.opsworks_instance.arn}"
@@ -835,7 +915,7 @@ resource "aws_opsworks_stack" "tf-acc" {
 }
 
 resource "aws_iam_role" "opsworks_service" {
-  name = "%[1]s_opsworks_service"
+  name = "%s_opsworks_service"
 
   assume_role_policy = <<EOT
 {
@@ -855,7 +935,7 @@ EOT
 }
 
 resource "aws_iam_role_policy" "opsworks_service" {
-  name = "%[1]s_opsworks_service"
+  name = "%s_opsworks_service"
   role = "${aws_iam_role.opsworks_service.id}"
 
   policy = <<EOT
@@ -878,7 +958,7 @@ EOT
 }
 
 resource "aws_iam_role" "opsworks_instance" {
-  name = "%[1]s_opsworks_instance"
+  name = "%s_opsworks_instance"
 
   assume_role_policy = <<EOT
 {
@@ -898,10 +978,10 @@ EOT
 }
 
 resource "aws_iam_instance_profile" "opsworks_instance" {
-  name  = "%[1]s_opsworks_instance"
+  name  = "%s_opsworks_instance"
   role  = "${aws_iam_role.opsworks_instance.name}"
 }
-`, name)
+`, name, name, name, name, name)
 }
 
 func testAccAwsOpsworksStackConfigNoVpcCreateUpdateServiceRole(name string) string {
@@ -911,7 +991,7 @@ provider "aws" {
 }
 
 resource "aws_opsworks_stack" "tf-acc" {
-  name                          = %[1]q
+  name                          = "%s"
   region                        = "us-east-1"
   service_role_arn              = "${aws_iam_role.opsworks_service_new.arn}"
   default_instance_profile_arn  = "${aws_iam_instance_profile.opsworks_instance.arn}"
@@ -924,7 +1004,7 @@ resource "aws_opsworks_stack" "tf-acc" {
 }
 
 resource "aws_iam_role" "opsworks_service" {
-  name = "%[1]s_opsworks_service"
+  name = "%s_opsworks_service"
 
   assume_role_policy = <<EOT
 {
@@ -944,7 +1024,7 @@ EOT
 }
 
 resource "aws_iam_role" "opsworks_service_new" {
-  name = "%[1]s_opsworks_service_new"
+  name = "%s_opsworks_service_new"
 
   assume_role_policy = <<EOT
 {
@@ -964,7 +1044,7 @@ EOT
 }
 
 resource "aws_iam_role_policy" "opsworks_service_new" {
-  name = "%[1]s_opsworks_service_new"
+  name = "%s_opsworks_service_new"
   role = "${aws_iam_role.opsworks_service_new.id}"
 
   policy = <<EOT
@@ -987,7 +1067,7 @@ EOT
 }
 
 resource "aws_iam_role_policy" "opsworks_service" {
-  name = "%[1]s_opsworks_service"
+  name = "%s_opsworks_service"
   role = "${aws_iam_role.opsworks_service.id}"
 
   policy = <<EOT
@@ -1010,7 +1090,7 @@ EOT
 }
 
 resource "aws_iam_role" "opsworks_instance" {
-  name = "%[1]s_opsworks_instance"
+  name = "%s_opsworks_instance"
 
   assume_role_policy = <<EOT
 {
@@ -1030,10 +1110,10 @@ EOT
 }
 
 resource "aws_iam_instance_profile" "opsworks_instance" {
-  name  = "%[1]s_opsworks_instance"
+  name  = "%s_opsworks_instance"
   role  = "${aws_iam_role.opsworks_instance.name}"
 }
-`, name)
+`, name, name, name, name, name, name, name)
 }
 
 ////////////////////////////
@@ -1061,7 +1141,7 @@ resource "aws_subnet" "tf-acc" {
 }
 
 resource "aws_opsworks_stack" "tf-acc" {
-  name                          = %[1]q
+  name                          = "%s"
   region                        = "us-west-2"
   vpc_id                        = "${aws_vpc.tf-acc.id}"
   default_subnet_id             = "${aws_subnet.tf-acc.id}"
@@ -1075,7 +1155,7 @@ resource "aws_opsworks_stack" "tf-acc" {
 }
 
 resource "aws_iam_role" "opsworks_service" {
-  name = "%[1]s_opsworks_service"
+  name = "%s_opsworks_service"
 
   assume_role_policy = <<EOT
 {
@@ -1095,7 +1175,7 @@ EOT
 }
 
 resource "aws_iam_role_policy" "opsworks_service" {
-  name = "%[1]s_opsworks_service"
+  name = "%s_opsworks_service"
   role = "${aws_iam_role.opsworks_service.id}"
 
   policy = <<EOT
@@ -1118,7 +1198,7 @@ EOT
 }
 
 resource "aws_iam_role" "opsworks_instance" {
-  name = "%[1]s_opsworks_instance"
+  name = "%s_opsworks_instance"
 
   assume_role_policy = <<EOT
 {
@@ -1138,10 +1218,10 @@ EOT
 }
 
 resource "aws_iam_instance_profile" "opsworks_instance" {
-  name  = "%[1]s_opsworks_instance"
+  name  = "%s_opsworks_instance"
   role  = "${aws_iam_role.opsworks_instance.name}"
 }
-`, name)
+`, name, name, name, name, name)
 }
 
 func testAccAWSOpsworksStackConfigVpcUpdate(name string) string {
@@ -1165,7 +1245,7 @@ resource "aws_subnet" "tf-acc" {
 }
 
 resource "aws_opsworks_stack" "tf-acc" {
-  name                          = %[1]q
+  name                          = "%s"
   region                        = "us-west-2"
   vpc_id                        = "${aws_vpc.tf-acc.id}"
   default_subnet_id             = "${aws_subnet.tf-acc.id}"
@@ -1187,7 +1267,7 @@ resource "aws_opsworks_stack" "tf-acc" {
 }
 
 resource "aws_iam_role" "opsworks_service" {
-  name = "%[1]s_opsworks_service"
+  name = "%s_opsworks_service"
 
   assume_role_policy = <<EOT
 {
@@ -1207,7 +1287,7 @@ EOT
 }
 
 resource "aws_iam_role_policy" "opsworks_service" {
-  name = "%[1]s_opsworks_service"
+  name = "%s_opsworks_service"
   role = "${aws_iam_role.opsworks_service.id}"
 
   policy = <<EOT
@@ -1230,7 +1310,7 @@ EOT
 }
 
 resource "aws_iam_role" "opsworks_instance" {
-  name = "%[1]s_opsworks_instance"
+  name = "%s_opsworks_instance"
 
   assume_role_policy = <<EOT
 {
@@ -1250,10 +1330,10 @@ EOT
 }
 
 resource "aws_iam_instance_profile" "opsworks_instance" {
-  name  = "%[1]s_opsworks_instance"
+  name  = "%s_opsworks_instance"
   role  = "${aws_iam_role.opsworks_instance.name}"
 }
-`, name)
+`, name, name, name, name, name)
 }
 
 /////////////////////////////////////////
@@ -1281,7 +1361,7 @@ resource "aws_subnet" "tf-acc" {
 }
 
 resource "aws_opsworks_stack" "tf-acc" {
-  name                          = %[1]q
+  name                          = "%s"
   region                        = "us-west-2"
   vpc_id                        = "${aws_vpc.tf-acc.id}"
   default_subnet_id             = "${aws_subnet.tf-acc.id}"
@@ -1301,12 +1381,12 @@ resource "aws_opsworks_stack" "tf-acc" {
     url      = "https://github.com/aws/opsworks-example-cookbooks.git"
     username = "username"
     password = "password"
-    ssh_key  = %[2]q
+    ssh_key  = "%s"
   }
 }
 
 resource "aws_iam_role" "opsworks_service" {
-  name = "%[1]s_opsworks_service"
+  name = "%s_opsworks_service"
 
   assume_role_policy = <<EOT
 {
@@ -1326,7 +1406,7 @@ EOT
 }
 
 resource "aws_iam_role_policy" "opsworks_service" {
-  name = "%[1]s_opsworks_service"
+  name = "%s_opsworks_service"
   role = "${aws_iam_role.opsworks_service.id}"
 
   policy = <<EOT
@@ -1349,7 +1429,7 @@ EOT
 }
 
 resource "aws_iam_role" "opsworks_instance" {
-  name = "%[1]s_opsworks_instance"
+  name = "%s_opsworks_instance"
 
   assume_role_policy = <<EOT
 {
@@ -1369,10 +1449,10 @@ EOT
 }
 
 resource "aws_iam_instance_profile" "opsworks_instance" {
-  name  = "%[1]s_opsworks_instance"
+  name  = "%s_opsworks_instance"
   role  = "${aws_iam_role.opsworks_instance.name}"
 }
-`, name, sshKey)
+`, name, sshKey, name, name, name, name)
 }
 
 // One-off, bogus private key generated for use in testing
