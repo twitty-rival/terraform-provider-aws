@@ -16,6 +16,7 @@ func resourceAwsCognitoUserPoolDomain() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsCognitoUserPoolDomainCreate,
 		Read:   resourceAwsCognitoUserPoolDomainRead,
+		Update: resourceAwsCognitoUserPoolDomainRead,
 		Delete: resourceAwsCognitoUserPoolDomainDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -55,6 +56,11 @@ func resourceAwsCognitoUserPoolDomain() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"wait_for_deployment": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
 		},
 	}
 }
@@ -88,32 +94,34 @@ func resourceAwsCognitoUserPoolDomainCreate(d *schema.ResourceData, meta interfa
 
 	d.SetId(domain)
 
-	stateConf := resource.StateChangeConf{
-		Pending: []string{
-			cognitoidentityprovider.DomainStatusTypeCreating,
-			cognitoidentityprovider.DomainStatusTypeUpdating,
-		},
-		Target: []string{
-			cognitoidentityprovider.DomainStatusTypeActive,
-		},
-		MinTimeout: 1 * time.Minute,
-		Timeout:    timeout,
-		Refresh: func() (interface{}, string, error) {
-			domain, err := conn.DescribeUserPoolDomain(&cognitoidentityprovider.DescribeUserPoolDomainInput{
-				Domain: aws.String(d.Get("domain").(string)),
-			})
-			if err != nil {
-				return 42, "", err
-			}
+	if d.Get("wait_for_deployment").(bool) {
+		stateConf := resource.StateChangeConf{
+			Pending: []string{
+				cognitoidentityprovider.DomainStatusTypeCreating,
+				cognitoidentityprovider.DomainStatusTypeUpdating,
+			},
+			Target: []string{
+				cognitoidentityprovider.DomainStatusTypeActive,
+			},
+			MinTimeout: 1 * time.Minute,
+			Timeout:    timeout,
+			Refresh: func() (interface{}, string, error) {
+				domain, err := conn.DescribeUserPoolDomain(&cognitoidentityprovider.DescribeUserPoolDomainInput{
+					Domain: aws.String(d.Get("domain").(string)),
+				})
+				if err != nil {
+					return 42, "", err
+				}
 
-			desc := domain.DomainDescription
+				desc := domain.DomainDescription
 
-			return domain, *desc.Status, nil
-		},
-	}
-	_, err = stateConf.WaitForState()
-	if err != nil {
-		return err
+				return domain, *desc.Status, nil
+			},
+		}
+		_, err = stateConf.WaitForState()
+		if err != nil {
+			return err
+		}
 	}
 
 	return resourceAwsCognitoUserPoolDomainRead(d, meta)
