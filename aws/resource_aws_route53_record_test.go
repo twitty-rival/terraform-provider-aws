@@ -1812,7 +1812,7 @@ resource "aws_route53_zone" "test" {
 
 resource "aws_elb" "test" {
   name = "foobar-tf-elb-alias-change"
-  availability_zones = [${data.aws_availability_zones.available.names[0]}"]
+  availability_zones = ["${data.aws_availability_zones.available.names[0]}"]
 
   listener {
     instance_port = 80
