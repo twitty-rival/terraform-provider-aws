@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/route53"
 )
 
@@ -135,7 +134,7 @@ func resourceAwsRoute53Record() *schema.Resource {
 							Required: true,
 							ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
 								value := v.(string)
-								if value != "PRIMARY" && value != "SECONDARY" {
+								if value != route53.ResourceRecordSetFailoverPrimary && value != route53.ResourceRecordSetFailoverSecondary {
 									es = append(es, fmt.Errorf("Failover policy type must be PRIMARY or SECONDARY"))
 								}
 								return
@@ -334,11 +333,11 @@ func resourceAwsRoute53RecordUpdate(d *schema.ResourceData, meta interface{}) er
 		Comment: aws.String("Managed by Terraform"),
 		Changes: []*route53.Change{
 			{
-				Action:            aws.String("DELETE"),
+				Action:            aws.String(route53.ChangeActionDelete),
 				ResourceRecordSet: oldRec,
 			},
 			{
-				Action:            aws.String("CREATE"),
+				Action:            aws.String(route53.ChangeActionCreate),
 				ResourceRecordSet: rec,
 			},
 		},
@@ -404,9 +403,9 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 	// Else CREATE is used and fail if the same record exists
 	var action string
 	if d.Get("allow_overwrite").(bool) || !d.IsNewResource() {
-		action = "UPSERT"
+		action = route53.ChangeActionUpsert
 	} else {
-		action = "CREATE"
+		action = route53.ChangeActionCreate
 	}
 
 	// Create the new records. We abuse StateChangeConf for this to
@@ -463,7 +462,7 @@ func changeRoute53RecordSet(conn *route53.Route53, input *route53.ChangeResource
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 		out, err = conn.ChangeResourceRecordSets(input)
-		if isAWSErr(err, "NoSuchHostedZone", "") {
+		if isAWSErr(err, route53.ErrCodeNoSuchHostedZone, "") {
 			log.Print("[DEBUG] Hosted Zone not found, retrying...")
 			return resource.RetryableError(err)
 		}
@@ -482,8 +481,8 @@ func changeRoute53RecordSet(conn *route53.Route53, input *route53.ChangeResource
 func waitForRoute53RecordSetToSync(conn *route53.Route53, requestId string) error {
 	wait := resource.StateChangeConf{
 		Delay:      30 * time.Second,
-		Pending:    []string{"PENDING"},
-		Target:     []string{"INSYNC"},
+		Pending:    []string{route53.ChangeStatusPending},
+		Target:     []string{route53.ChangeStatusInsync},
 		Timeout:    30 * time.Minute,
 		MinTimeout: 5 * time.Second,
 		Refresh: func() (result interface{}, state string, err error) {
@@ -618,7 +617,7 @@ func findRecord(d *schema.ResourceData, meta interface{}) (*route53.ResourceReco
 	// get expanded name
 	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneInput{Id: aws.String(zone)})
 	if err != nil {
-		if r53err, ok := err.(awserr.Error); ok && r53err.Code() == "NoSuchHostedZone" {
+		if isAWSErr(err, route53.ErrCodeNoSuchHostedZone, "") {
 			return nil, r53NoHostedZoneFound
 		}
 		return nil, err
@@ -719,7 +718,7 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 		Comment: aws.String("Deleted by Terraform"),
 		Changes: []*route53.Change{
 			{
-				Action:            aws.String("DELETE"),
+				Action:            aws.String(route53.ChangeActionDelete),
 				ResourceRecordSet: rec,
 			},
 		},
@@ -749,7 +748,7 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 
 func deleteRoute53RecordSet(conn *route53.Route53, input *route53.ChangeResourceRecordSetsInput) (interface{}, error) {
 	out, err := conn.ChangeResourceRecordSets(input)
-	if isAWSErr(err, "InvalidChangeBatch", "") {
+	if isAWSErr(err, route53.ErrCodeInvalidChangeBatch, "") {
 		return out, nil
 	}
 
@@ -769,7 +768,7 @@ func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (
 		Type: aws.String(d.Get("type").(string)),
 	}
 
-	if v, ok := d.GetOk("ttl"); ok {
+	if v, ok := d.GetOkExists("ttl"); ok {
 		rec.TTL = aws.Int64(int64(v.(int)))
 	}
 
@@ -793,7 +792,7 @@ func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (
 		}
 		log.Printf("[DEBUG] Creating alias: %#v", alias)
 	} else {
-		if _, ok := d.GetOk("ttl"); !ok {
+		if _, ok := d.GetOkExists("ttl"); !ok {
 			return nil, fmt.Errorf(`provider.aws: aws_route53_record: %s: "ttl": required field is not set`, d.Get("name").(string))
 		}
 
