@@ -727,6 +727,10 @@ data "aws_availability_zones" "available" {
   # after waiting upwards of one hour to initialize the Auto Scaling Group.
   blacklisted_zone_ids = ["usw2-az4"]
   state                = "available"
+<<<<<<< HEAD
+=======
+
+>>>>>>> tests/provider: Bulk update aws_availability_zones data sources in test configurations to exclude Local Zones (#12517)
   filter {
     name   = "opt-in-status"
     values = ["opt-in-not-required"]
