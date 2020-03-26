@@ -559,6 +559,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_glue_connection":                                     resourceAwsGlueConnection(),
 			"aws_glue_crawler":                                        resourceAwsGlueCrawler(),
 			"aws_glue_job":                                            resourceAwsGlueJob(),
+			"aws_glue_partition":                                      resourceAwsGluePartition(),
 			"aws_glue_security_configuration":                         resourceAwsGlueSecurityConfiguration(),
 			"aws_glue_trigger":                                        resourceAwsGlueTrigger(),
 			"aws_glue_workflow":                                       resourceAwsGlueWorkflow(),
