@@ -1078,6 +1078,7 @@ func init() {
 		"rds",
 		"redshift",
 		"resourcegroups",
+		"resourcegroupstaggingapi",
 		"route53",
 		"route53resolver",
 		"s3",
