@@ -4,7 +4,6 @@ package keyvaluetags
 
 import (
 	"fmt"
-	"github.com/aws/aws-sdk-go/service/quicksight"
 	"reflect"
 
 	"github.com/aws/aws-sdk-go/service/accessanalyzer"
@@ -87,10 +86,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/aws/aws-sdk-go/service/pinpoint"
 	"github.com/aws/aws-sdk-go/service/qldb"
+	"github.com/aws/aws-sdk-go/service/quicksight"
 	"github.com/aws/aws-sdk-go/service/ram"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/resourcegroups"
+	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/route53resolver"
 	"github.com/aws/aws-sdk-go/service/sagemaker"
@@ -286,6 +287,8 @@ func ServiceClientType(serviceName string) string {
 		funcType = reflect.TypeOf(redshift.New)
 	case "resourcegroups":
 		funcType = reflect.TypeOf(resourcegroups.New)
+	case "resourcegroupstaggingapi":
+		funcType = reflect.TypeOf(resourcegroupstaggingapi.New)
 	case "route53":
 		funcType = reflect.TypeOf(route53.New)
 	case "route53resolver":
