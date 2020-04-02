@@ -1189,9 +1189,10 @@ func assumeRoleSchema() *schema.Schema {
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"role_arn": {
-					Type:        schema.TypeString,
-					Optional:    true,
-					Description: descriptions["assume_role_role_arn"],
+					Type:         schema.TypeString,
+					Optional:     true,
+					ValidateFunc: validateArn,
+					Description:  descriptions["assume_role_role_arn"],
 				},
 
 				"session_name": {
