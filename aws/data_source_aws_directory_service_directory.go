@@ -55,10 +55,6 @@ func dataSourceAwsDirectoryServiceDirectory() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"security_group_id": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
 						"availability_zones": {
 							Type:     schema.TypeSet,
 							Computed: true,
@@ -91,15 +87,6 @@ func dataSourceAwsDirectoryServiceDirectory() *schema.Resource {
 						"vpc_id": {
 							Type:     schema.TypeString,
 							Computed: true,
-						},
-						"security_group_id": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"connect_ips": {
-							Type:     schema.TypeSet,
-							Computed: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 						"availability_zones": {
 							Type:     schema.TypeSet,
