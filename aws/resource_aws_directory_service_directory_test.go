@@ -559,10 +559,10 @@ resource "aws_directory_service_directory" "test" {
     subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.test.id}"]
   }
 
-	tags = {
-		foo = "test"
-		project = "test"
-	}
+  tags = {
+    foo = "test"
+    project = "test"
+  }
 }
 `
 
@@ -577,11 +577,11 @@ resource "aws_directory_service_directory" "test" {
     subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.test.id}"]
   }
 
-	tags = {
-		foo = "test"
-		project = "test2"
-		fizz = "buzz"
-	}
+  tags = {
+    foo = "test"
+    project = "test2"
+    fizz = "buzz"
+  }
 }
 `
 
@@ -596,9 +596,9 @@ resource "aws_directory_service_directory" "test" {
     subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.test.id}"]
   }
 
-	tags = {
-		foo = "test"
-	}
+  tags = {
+    foo = "test"
+  }
 }
 `
 
