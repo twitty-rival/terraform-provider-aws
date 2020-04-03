@@ -510,23 +510,23 @@ data "aws_availability_zones" "available" {
   }
 }
 
-resource "aws_vpc" "main" {
+resource "aws_vpc" "test" {
   cidr_block = "10.0.0.0/16"
 	tags = {
 		Name = "terraform-testacc-directory-service-directory-tags"
 	}
 }
 
-resource "aws_subnet" "foo" {
-  vpc_id = "${aws_vpc.main.id}"
+resource "aws_subnet" "test1" {
+  vpc_id = "${aws_vpc.test.id}"
   availability_zone = "${data.aws_availability_zones.available.names[0]}"
   cidr_block = "10.0.1.0/24"
   tags = {
     Name = "tf-acc-directory-service-directory-foo"
   }
 }
-resource "aws_subnet" "test" {
-  vpc_id = "${aws_vpc.main.id}"
+resource "aws_subnet" "test2" {
+  vpc_id = "${aws_vpc.test.id}"
   availability_zone = "${data.aws_availability_zones.available.names[1]}"
   cidr_block = "10.0.2.0/24"
   tags = {
@@ -542,8 +542,8 @@ resource "aws_directory_service_directory" "test" {
   size = "Small"
 
   vpc_settings {
-    vpc_id = "${aws_vpc.main.id}"
-    subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.test.id}"]
+    vpc_id = "${aws_vpc.test.id}"
+    subnet_ids = ["${aws_subnet.test1.id}", "${aws_subnet.test2.id}"]
   }
 }
 `
@@ -555,8 +555,8 @@ resource "aws_directory_service_directory" "test" {
   size = "Small"
 
   vpc_settings {
-    vpc_id = "${aws_vpc.main.id}"
-    subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.test.id}"]
+    vpc_id = "${aws_vpc.test.id}"
+    subnet_ids = ["${aws_subnet.test1.id}", "${aws_subnet.test2.id}"]
   }
 
   tags = {
@@ -573,8 +573,8 @@ resource "aws_directory_service_directory" "test" {
   size = "Small"
 
   vpc_settings {
-    vpc_id = "${aws_vpc.main.id}"
-    subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.test.id}"]
+    vpc_id = "${aws_vpc.test.id}"
+    subnet_ids = ["${aws_subnet.test1.id}", "${aws_subnet.test2.id}"]
   }
 
   tags = {
@@ -592,8 +592,8 @@ resource "aws_directory_service_directory" "test" {
   size = "Small"
 
   vpc_settings {
-    vpc_id = "${aws_vpc.main.id}"
-    subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.test.id}"]
+    vpc_id = "${aws_vpc.test.id}"
+    subnet_ids = ["${aws_subnet.test1.id}", "${aws_subnet.test2.id}"]
   }
 
   tags = {
@@ -609,8 +609,8 @@ resource "aws_directory_service_directory" "base" {
   size = "Small"
 
   vpc_settings {
-    vpc_id = "${aws_vpc.main.id}"
-    subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.test.id}"]
+    vpc_id = "${aws_vpc.test.id}"
+    subnet_ids = ["${aws_subnet.test1.id}", "${aws_subnet.test2.id}"]
   }
 }
 
@@ -623,8 +623,8 @@ resource "aws_directory_service_directory" "test" {
   connect_settings {
     customer_dns_ips = aws_directory_service_directory.base.dns_ip_addresses
     customer_username = "Administrator"
-    vpc_id = "${aws_vpc.main.id}"
-    subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.test.id}"]
+    vpc_id = "${aws_vpc.test.id}"
+    subnet_ids = ["${aws_subnet.test1.id}", "${aws_subnet.test2.id}"]
   }
 }
 `
@@ -636,8 +636,8 @@ resource "aws_directory_service_directory" "test" {
   type = "MicrosoftAD"
 
   vpc_settings {
-    vpc_id = "${aws_vpc.main.id}"
-    subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.test.id}"]
+    vpc_id = "${aws_vpc.test.id}"
+    subnet_ids = ["${aws_subnet.test1.id}", "${aws_subnet.test2.id}"]
   }
 }
 `
@@ -650,8 +650,8 @@ resource "aws_directory_service_directory" "test" {
   edition = "Standard"
 
   vpc_settings {
-    vpc_id = "${aws_vpc.main.id}"
-    subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.test.id}"]
+    vpc_id = "${aws_vpc.test.id}"
+    subnet_ids = ["${aws_subnet.test1.id}", "${aws_subnet.test2.id}"]
   }
 }
 `
@@ -665,8 +665,8 @@ resource "aws_directory_service_directory" "test" {
   alias = %[1]q
 
   vpc_settings {
-    vpc_id = "${aws_vpc.main.id}"
-    subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.test.id}"]
+    vpc_id = "${aws_vpc.test.id}"
+    subnet_ids = ["${aws_subnet.test1.id}", "${aws_subnet.test2.id}"]
   }
 }
 `, alias)
@@ -682,8 +682,8 @@ resource "aws_directory_service_directory" "test" {
   enable_sso = true
 
   vpc_settings {
-    vpc_id = "${aws_vpc.main.id}"
-    subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.test.id}"]
+    vpc_id = "${aws_vpc.test.id}"
+    subnet_ids = ["${aws_subnet.test1.id}", "${aws_subnet.test2.id}"]
   }
 }
 `, alias)
@@ -699,8 +699,8 @@ resource "aws_directory_service_directory" "test" {
   enable_sso = false
 
   vpc_settings {
-    vpc_id = "${aws_vpc.main.id}"
-    subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.test.id}"]
+    vpc_id = "${aws_vpc.test.id}"
+    subnet_ids = ["${aws_subnet.test1.id}", "${aws_subnet.test2.id}"]
   }
 }
 `, alias)
