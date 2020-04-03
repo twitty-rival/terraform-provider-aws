@@ -1570,7 +1570,6 @@ func flattenDSVpcSettings(
 
 	settings["subnet_ids"] = flattenStringSet(s.SubnetIds)
 	settings["vpc_id"] = aws.StringValue(s.VpcId)
-	settings["security_group_id"] = aws.StringValue(s.SecurityGroupId)
 	settings["availability_zones"] = flattenStringSet(s.AvailabilityZones)
 
 	return []map[string]interface{}{settings}
@@ -1687,11 +1686,9 @@ func flattenDSConnectSettings(
 	settings := make(map[string]interface{})
 
 	settings["customer_dns_ips"] = flattenStringSet(customerDnsIps)
-	settings["connect_ips"] = flattenStringSet(s.ConnectIps)
 	settings["customer_username"] = aws.StringValue(s.CustomerUserName)
 	settings["subnet_ids"] = flattenStringSet(s.SubnetIds)
 	settings["vpc_id"] = aws.StringValue(s.VpcId)
-	settings["security_group_id"] = aws.StringValue(s.SecurityGroupId)
 	settings["availability_zones"] = flattenStringSet(s.AvailabilityZones)
 
 	return []map[string]interface{}{settings}
