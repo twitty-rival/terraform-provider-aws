@@ -108,7 +108,7 @@ func resourceAwsDirectoryServiceDirectory() *schema.Resource {
 							ForceNew: true,
 							Elem: &schema.Schema{
 								Type:         schema.TypeString,
-								ValidateFunc: validation.IsIPAddress(),
+								ValidateFunc: validation.IsIPAddress,
 							},
 							Set: schema.HashString,
 						},
