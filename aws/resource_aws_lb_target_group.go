@@ -759,6 +759,11 @@ func resourceAwsLbTargetGroupCustomizeDiff(diff *schema.ResourceDiff, v interfac
 				return err
 			}
 		}
+		if diff.HasChange("health_check.0.protocol") {
+			if err := diff.ForceNew("health_check.0.protocol"); err != nil {
+				return err
+			}
+		}
 		if diff.HasChange("health_check.0.timeout") {
 			if err := diff.ForceNew("health_check.0.timeout"); err != nil {
 				return err
