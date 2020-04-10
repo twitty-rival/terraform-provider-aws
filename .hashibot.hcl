@@ -230,6 +230,7 @@ behavior "regexp_issue_labeler_v2" "service_labels" {
       "aws_spot",
       "aws_route(\"|`|$)",
       "aws_vpn_",
+      "aws_volume_attachment",
     ],
     "service/ecr" = [
       "aws_ecr_",
@@ -787,6 +788,7 @@ behavior "pull_request_path_labeler" "service_labels" {
       "aws/*_aws_subnet*",
       "aws/*_aws_vpc*",
       "aws/*_aws_vpn*",
+      "aws/*_aws_volume_attachment*",
       "website/**/availability_zone*",
       "website/**/customer_gateway*",
       "website/**/default_network_acl*",
@@ -814,7 +816,8 @@ behavior "pull_request_path_labeler" "service_labels" {
       "website/**/spot_*",
       "website/**/subnet*",
       "website/**/vpc*",
-      "website/**/vpn*"
+      "website/**/vpn*",
+      "website/**/volume_attachment*"
     ]
     "service/ecr" = [
       "**/*_ecr_*",
