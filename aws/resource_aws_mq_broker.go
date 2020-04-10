@@ -98,7 +98,6 @@ func resourceAwsMqBroker() *schema.Resource {
 			"engine_version": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"host_instance_type": {
 				Type:     schema.TypeString,
@@ -402,11 +401,12 @@ func resourceAwsMqBrokerUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	if d.HasChange("configuration") || d.HasChange("logs") {
+	if d.HasChange("configuration") || d.HasChange("logs") || d.HasChange("engine_version") {
 		_, err := conn.UpdateBroker(&mq.UpdateBrokerRequest{
 			BrokerId:      aws.String(d.Id()),
 			Configuration: expandMqConfigurationId(d.Get("configuration").([]interface{})),
 			Logs:          expandMqLogs(d.Get("logs").([]interface{})),
+			EngineVersion: aws.String(d.Get("engine_version").(string)),
 		})
 		if err != nil {
 			return fmt.Errorf("error updating MQ Broker (%s) configuration: %s", d.Id(), err)
