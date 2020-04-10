@@ -968,7 +968,6 @@ func TestAccAWSSpotFleetRequest_zero_capacity(t *testing.T) {
 	})
 }
 
-
 func TestAccAWSSpotFleetRequest_WithInstanceStoreAmi(t *testing.T) {
 	t.Skip("Test fails due to test harness constraints")
 	rName := acctest.RandString(10)
