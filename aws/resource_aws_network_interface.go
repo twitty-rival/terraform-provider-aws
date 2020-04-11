@@ -171,7 +171,6 @@ func resourceAwsNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 		}
 	}
 
-
 	if err := waitForNetworkInterfaceCreation(conn, d.Id(), d.Timeout(schema.TimeoutCreate)); err != nil {
 		return fmt.Errorf("error waiting for Network Interface (%s) creation: %s", d.Id(), err)
 	}
