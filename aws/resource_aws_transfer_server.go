@@ -257,6 +257,7 @@ func resourceAwsTransferServerRead(d *schema.ResourceData, meta interface{}) err
 		}
 		return err
 	}
+	log.Printf("[DEBUG] Reading Transfer Server %#v", resp.Server)
 
 	endpoint := meta.(*AWSClient).RegionalHostname(fmt.Sprintf("%s.server.transfer", d.Id()))
 
@@ -339,6 +340,7 @@ func resourceAwsTransferServerUpdate(d *schema.ResourceData, meta interface{}) e
 				return fmt.Errorf("error waiting for Trasfer Server (%s) to stop: %s", d.Id(), err)
 			}
 		}
+		log.Printf("[DEBUG] Updating Transfer Server %#v", updateOpts)
 		_, err := conn.UpdateServer(updateOpts)
 		if err != nil {
 			if isAWSErr(err, transfer.ErrCodeResourceNotFoundException, "") {
@@ -485,11 +487,11 @@ func expandTransferServerEndpointDetails(l []interface{}, isUpdate bool) *transf
 		ed.VpcId = aws.String(v)
 	}
 
-	if v, ok := e["subnet_ids"].(*schema.Set); ok && len(v.List()) > 0 {
+	if v, ok := e["subnet_ids"].(*schema.Set); ok && v.Len() > 0 {
 		ed.SubnetIds = expandStringSet(v)
 	}
 
-	if v, ok := e["address_allocation_ids"].(*schema.Set); ok && len(v.List()) > 0 && isUpdate {
+	if v, ok := e["address_allocation_ids"].(*schema.Set); ok && v.Len() > 0 && isUpdate {
 		ed.AddressAllocationIds = expandStringSet(v)
 	}
 
