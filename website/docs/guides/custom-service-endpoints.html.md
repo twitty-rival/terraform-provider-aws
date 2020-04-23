@@ -162,6 +162,7 @@ The Terraform AWS Provider allows the following endpoints to be customized:
   <li><code>resourcegroups</code></li>
   <li><code>resourcegroupstaggingapi</code></li>  
   <li><code>route53</code></li>
+  <li><code>route53domains</code></li>
   <li><code>route53resolver</code></li>
   <li><code>s3</code></li>
   <li><code>s3control</code></li>
