@@ -58,7 +58,7 @@ func resourceAwsGlacierVault() *schema.Resource {
 			"access_policy": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validation.ValidateJsonString,
+				ValidateFunc: validation.StringIsJSON,
 				StateFunc: func(v interface{}) string {
 					json, _ := structure.NormalizeJsonString(v)
 					return json
@@ -102,7 +102,7 @@ func resourceAwsGlacierVaultCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	d.SetId(d.Get("name").(string))
-	d.Set("location", *out.Location)
+	d.Set("location", out.Location)
 
 	return resourceAwsGlacierVaultUpdate(d, meta)
 }

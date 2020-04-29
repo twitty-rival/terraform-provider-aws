@@ -25,7 +25,6 @@ func dataSourceAwsInstance() *schema.Resource {
 			"instance_id": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 			},
 			"ami": {
 				Type:     schema.TypeString,
@@ -93,6 +92,10 @@ func dataSourceAwsInstance() *schema.Resource {
 				Computed: true,
 			},
 			"subnet_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"outpost_arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -235,6 +238,11 @@ func dataSourceAwsInstance() *schema.Resource {
 							Computed: true,
 						},
 
+						"device_name": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+
 						"encrypted": {
 							Type:     schema.TypeBool,
 							Computed: true,
@@ -274,6 +282,26 @@ func dataSourceAwsInstance() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"cpu_credits": {
 							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
+			"metadata_options": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"http_endpoint": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"http_tokens": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"http_put_response_hop_limit": {
+							Type:     schema.TypeInt,
 							Computed: true,
 						},
 					},
@@ -397,6 +425,7 @@ func instanceDescriptionAttributes(d *schema.ResourceData, instance *ec2.Instanc
 	d.Set("public_ip", instance.PublicIpAddress)
 	d.Set("private_dns", instance.PrivateDnsName)
 	d.Set("private_ip", instance.PrivateIpAddress)
+	d.Set("outpost_arn", instance.OutpostArn)
 	d.Set("iam_instance_profile", iamInstanceProfileArnToName(instance.IamInstanceProfile))
 
 	// iterate through network interfaces, and set subnet, network_interface, public_addr
@@ -484,6 +513,10 @@ func instanceDescriptionAttributes(d *schema.ResourceData, instance *ec2.Instanc
 
 	if err := d.Set("credit_specification", creditSpecifications); err != nil {
 		return fmt.Errorf("error setting credit_specification: %s", err)
+	}
+
+	if err := d.Set("metadata_options", flattenEc2InstanceMetadataOptions(instance.MetadataOptions)); err != nil {
+		return fmt.Errorf("error setting metadata_options: %s", err)
 	}
 
 	return nil

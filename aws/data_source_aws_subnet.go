@@ -39,6 +39,11 @@ func dataSourceAwsSubnet() *schema.Resource {
 				Computed: true,
 			},
 
+			"outpost_arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"default_for_az": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -131,9 +136,13 @@ func dataSourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	req.Filters = buildEC2AttributeFilterList(filters)
-	req.Filters = append(req.Filters, buildEC2TagFilterList(
-		tagsFromMap(d.Get("tags").(map[string]interface{})),
-	)...)
+
+	if tags, tagsOk := d.GetOk("tags"); tagsOk {
+		req.Filters = append(req.Filters, buildEC2TagFilterList(
+			keyvaluetags.New(tags.(map[string]interface{})).Ec2Tags(),
+		)...)
+	}
+
 	req.Filters = append(req.Filters, buildEC2CustomFilterList(
 		d.Get("filter").(*schema.Set),
 	)...)
@@ -163,6 +172,7 @@ func dataSourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("cidr_block", subnet.CidrBlock)
 	d.Set("default_for_az", subnet.DefaultForAz)
 	d.Set("state", subnet.State)
+	d.Set("outpost_arn", subnet.OutpostArn)
 
 	if err := d.Set("tags", keyvaluetags.Ec2KeyValueTags(subnet.Tags).IgnoreAws().Map()); err != nil {
 		return fmt.Errorf("error setting tags: %s", err)
