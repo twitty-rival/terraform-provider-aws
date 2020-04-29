@@ -25,7 +25,6 @@ func dataSourceAwsInstance() *schema.Resource {
 			"instance_id": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 			},
 			"ami": {
 				Type:     schema.TypeString,
@@ -93,6 +92,10 @@ func dataSourceAwsInstance() *schema.Resource {
 				Computed: true,
 			},
 			"subnet_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"outpost_arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -232,6 +235,11 @@ func dataSourceAwsInstance() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"delete_on_termination": {
 							Type:     schema.TypeBool,
+							Computed: true,
+						},
+
+						"device_name": {
+							Type:     schema.TypeString,
 							Computed: true,
 						},
 
@@ -417,6 +425,7 @@ func instanceDescriptionAttributes(d *schema.ResourceData, instance *ec2.Instanc
 	d.Set("public_ip", instance.PublicIpAddress)
 	d.Set("private_dns", instance.PrivateDnsName)
 	d.Set("private_ip", instance.PrivateIpAddress)
+	d.Set("outpost_arn", instance.OutpostArn)
 	d.Set("iam_instance_profile", iamInstanceProfileArnToName(instance.IamInstanceProfile))
 
 	// iterate through network interfaces, and set subnet, network_interface, public_addr

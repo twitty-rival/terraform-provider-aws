@@ -86,6 +86,7 @@ func TestAccAWSENI_basic(t *testing.T) {
 					resource.TestCheckResourceAttrSet(resourceName, "mac_address"),
 					resource.TestCheckResourceAttr(resourceName, "tags.#", "0"),
 					resource.TestCheckResourceAttr(resourceName, "description", "Managed by Terraform"),
+          resource.TestCheckResourceAttr(resourceName, "outpost_arn", ""),
 				),
 			},
 			{
